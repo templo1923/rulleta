@@ -12,6 +12,8 @@ import { chooseWeighted, defaultPrizes, defaultSettings, normalizeEmail, normali
 import { verifyPassword } from "./localAuth";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
+import { hashPassword } from "./localAuth";
+import { ENV } from "./env";
 
 const json = (value: unknown) => JSON.stringify(value);
 const campaignResponse = async (includeInactive = false) => {
@@ -45,6 +47,24 @@ async function startServer() {
   app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ limit: "12mb", extended: true }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok", app: "ruletaflex" }));
+  app.get("/install", (_req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!doctype html><html lang="es"><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Instalar Ruleta Flex</title><style>body{font-family:Arial,sans-serif;background:#f4f2ff;display:grid;place-items:center;min-height:100vh;margin:0}.card{background:#fff;max-width:430px;width:calc(100% - 32px);padding:28px;border-radius:20px;box-shadow:0 15px 50px #20135b20}h1{margin-top:0;color:#21164f}label{display:block;margin:14px 0;color:#514b6e;font-weight:700}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #ddd8ef;border-radius:10px;margin-top:6px;font-size:16px}button{width:100%;border:0;border-radius:10px;background:#f5c941;padding:14px;font-weight:800;font-size:16px;margin-top:10px;cursor:pointer}.hint{color:#67617d;font-size:14px;line-height:1.5}.error{color:#a52b37;background:#fff0f1;padding:10px;border-radius:8px}</style></head><body><main class="card"><h1>Instalar Ruleta Flex</h1><p class="hint">Usa este formulario una sola vez para crear el primer administrador. Necesitas la clave temporal INSTALL_KEY configurada en Hostinger.</p><form method="post" action="/install"><label>Clave de instalación<input name="installKey" type="password" required></label><label>Nombre<input name="name" value="Administrador" required></label><label>Correo<input name="email" type="email" required></label><label>Contraseña<input name="password" type="password" minlength="8" required></label><button>Crear administrador</button></form></main></body></html>`);
+  });
+  app.post("/install", async (req, res) => {
+    if (!ENV.installKey || String(req.body?.installKey || "") !== ENV.installKey) return sendError(res, 403, "Clave de instalación inválida.");
+    try {
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const name = String(req.body?.name || "Administrador").trim();
+      const password = String(req.body?.password || "");
+      if (!email || !name || password.length < 8) return sendError(res, 400, "Completa los datos. La contraseña debe tener al menos 8 caracteres.");
+      await db.createInitialAdmin(email, name, await hashPassword(password));
+      res.send("<h1>Administrador creado correctamente</h1><p>Elimina INSTALL_KEY de Hostinger y borra o bloquea esta ruta antes de usar el sistema.</p><p><a href=\"/admin\">Ir al panel</a></p>");
+    } catch (error: any) {
+      if (error?.message === "ADMIN_ALREADY_EXISTS") return sendError(res, 409, "Ya existe un administrador. El instalador está cerrado.");
+      console.error("installer", error); sendError(res, 500, "No se pudo crear el administrador.");
+    }
+  });
   app.get("/api/platform/config.js", (_req, res) => res.set("Cache-Control", "no-store").type("application/javascript").send(publicPlatformScript()));
 
   app.post("/api/auth/login", async (req, res) => {

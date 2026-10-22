@@ -107,6 +107,21 @@ export async function createLocalUser(email: string, name: string, passwordHash:
   return (await db.select().from(users).where(eq(users.id, inserted[0].id)).limit(1))[0];
 }
 
+export async function createInitialAdmin(email: string, name: string, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+  if (admins.length) throw new Error("ADMIN_ALREADY_EXISTS");
+  const normalizedEmail = normalizeEmail(email);
+  const existing = await getUserByEmail(normalizedEmail);
+  if (existing) {
+    await db.update(users).set({ name, passwordHash, role: "admin", status: "active", loginMethod: "password" }).where(eq(users.id, existing.id));
+    return (await db.select().from(users).where(eq(users.id, existing.id)).limit(1))[0];
+  }
+  const inserted = await db.insert(users).values({ openId: `local:${normalizedEmail}`, email: normalizedEmail, name, passwordHash, loginMethod: "password", role: "admin", status: "active" }).$returningId();
+  return (await db.select().from(users).where(eq(users.id, inserted[0].id)).limit(1))[0];
+}
+
 export async function touchUserLogin(id: number) {
   const db = await getDb();
   if (!db) return;

@@ -10,6 +10,7 @@ export const ENV = {
     return name && user ? `mysql://${user}:${pass}@${host}:${port}/${name}` : "";
   },
   get webUrl() { return process.env.RUTA_WEB ?? ""; },
+  get installKey() { return process.env.INSTALL_KEY ?? ""; },
   get appId() { return process.env.APP_ID ?? process.env.MANUS_PROJECT_ID ?? "ruletaflex"; },
   get cookieSecret() { return process.env.SESSION_SECRET ?? process.env.MANUS_JWT_SECRET ?? ""; },
   get databaseUrl() { return process.env.DATABASE_URL ?? ""; },
