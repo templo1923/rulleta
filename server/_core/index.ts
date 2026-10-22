@@ -179,7 +179,16 @@ async function startServer() {
   app.put("/api/admin/campaign", async (req, res) => {
     const user = await adminUser(req);
     if (!user) return sendError(res, 403, "Necesitas iniciar sesión como administrador.");
-    try { const campaign = await db.ensureDefaultCampaign(); if (!campaign) return sendError(res, 503, "Base de datos no disponible."); await db.updateCampaignSettings(campaign.id, String(req.body?.name || campaign.name), req.body?.settings || defaultSettings); res.json({ ok: true }); } catch { sendError(res, 500, "No se pudo guardar la campaña."); }
+    try {
+      const campaign = await db.ensureDefaultCampaign();
+      if (!campaign) return sendError(res, 503, "Base de datos no disponible.");
+      const saved = await db.updateCampaignSettings(campaign.id, String(req.body?.name || campaign.name), req.body?.settings || defaultSettings);
+      if (!saved) return sendError(res, 503, "No se pudo conectar con la base de datos.");
+      res.json({ ok: true, saved: { name: saved.name, settings: saved.settings } });
+    } catch (error) {
+      console.error("campaign settings save", error);
+      sendError(res, 500, "MySQL rechazó el guardado. Verifica que la aplicación use la misma base configurada en Hostinger y que las migraciones estén aplicadas.");
+    }
   });
   app.put("/api/admin/prizes", async (req, res) => {
     const user = await adminUser(req);

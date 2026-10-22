@@ -287,7 +287,13 @@ export async function listParticipants(campaignId: number) {
 export async function updateCampaignSettings(campaignId: number, name: string, settings: CampaignSettings) {
   const db = await getDb();
   if (!db) return;
-  await db.update(campaigns).set({ name, settings }).where(eq(campaigns.id, campaignId));
+  const current = await db.select({ settings: campaigns.settings }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+  const currentSettings = (current[0]?.settings && typeof current[0].settings === "object") ? current[0].settings as CampaignSettings : defaultSettings;
+  const mergedSettings = { ...defaultSettings, ...currentSettings, ...settings, socialLinks: Array.isArray(settings.socialLinks) ? settings.socialLinks : currentSettings.socialLinks };
+  await db.update(campaigns).set({ name: String(name).slice(0, 180), settings: mergedSettings }).where(eq(campaigns.id, campaignId));
+  const saved = await db.select({ name: campaigns.name, settings: campaigns.settings }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+  if (!saved[0]) throw new Error("La campaña no quedó guardada en MySQL.");
+  return saved[0];
 }
 
 export async function replacePrizes(campaignId: number, incoming: Array<Partial<typeof prizes.$inferInsert> & { id?: number }>) {
