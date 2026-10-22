@@ -1,0 +1,2 @@
+ALTER TABLE `participants` ADD `participationToken` varchar(96) NOT NULL;--> statement-breakpoint
+ALTER TABLE `participants` ADD CONSTRAINT `participants_participationToken_unique` UNIQUE(`participationToken`);
