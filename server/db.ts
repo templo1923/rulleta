@@ -1,11 +1,14 @@
 import { and, count, desc, eq, gte, gt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { migrate } from "drizzle-orm/mysql2/migrator";
 import { randomBytes, randomUUID } from "node:crypto";
+import path from "node:path";
 import { campaigns, claimPhotos, InsertUser, participants, prizes, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { defaultPrizes, defaultSettings, normalizeEmail, normalizeWhatsapp, type CampaignSettings } from './campaign';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _migrationsReady = false;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -18,6 +21,14 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+export async function prepareDatabase() {
+  const db = await getDb();
+  if (!db || _migrationsReady) return db;
+  await migrate(db, { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
+  _migrationsReady = true;
+  return db;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -108,7 +119,7 @@ export async function createLocalUser(email: string, name: string, passwordHash:
 }
 
 export async function createInitialAdmin(email: string, name: string, passwordHash: string) {
-  const db = await getDb();
+  const db = await prepareDatabase();
   if (!db) throw new Error("Database is not available");
   const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
   if (admins.length) throw new Error("ADMIN_ALREADY_EXISTS");
