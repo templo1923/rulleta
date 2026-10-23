@@ -186,7 +186,7 @@ export async function updateUserRole(userId: number, role: "user" | "admin") {
   return Boolean(updated[0]?.affectedRows);
 }
 
-export async function getCampaignBySlug(slug = "demo") {
+export async function getCampaignBySlug(slug = "live") {
   const db = await getDb();
   if (!db) return null;
   const result = await db.select().from(campaigns).where(eq(campaigns.slug, slug)).limit(1);
@@ -224,9 +224,9 @@ export async function getPrizeDailyUses(campaignId: number, prizeId: number) {
 export async function ensureDefaultCampaign() {
   const db = await getDb();
   if (!db) return null;
-  let campaign = await getCampaignBySlug("demo");
+  let campaign = await getCampaignBySlug("live");
   if (!campaign) {
-    const inserted = await db.insert(campaigns).values({ slug: "demo", name: "Campaña EmprendeRed", active: 1, settings: defaultSettings }).$returningId();
+    const inserted = await db.insert(campaigns).values({ slug: "live", name: "Campaña EmprendeRed", active: 1, settings: defaultSettings }).$returningId();
     campaign = (await db.select().from(campaigns).where(eq(campaigns.id, inserted[0].id)).limit(1))[0] ?? null;
     if (campaign) await db.insert(prizes).values(defaultPrizes.map((item, index) => ({ ...item, campaignId: campaign!.id, sortOrder: index, active: 1 })));
   } else {

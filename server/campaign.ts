@@ -26,9 +26,9 @@ export type CampaignSettings = {
 };
 
 export const defaultSettings: CampaignSettings = {
-  brand: "Ruleta Flex",
-  logoText: "RF",
-  wheelCenterText: "Ruleta Flex",
+  brand: "Ruleta EmprendeRed",
+  logoText: "ER",
+  wheelCenterText: "EmprendeRed",
   eyebrow: "CAMPAÑA PROMOCIONAL",
   title: "Gira y gana algo grande",
   highlight: "Tu oportunidad está a un giro",
@@ -52,6 +52,7 @@ export const defaultSettings: CampaignSettings = {
   socialLinks: [
     { label: "Instagram", url: "https://instagram.com/", icon: "◎", active: true },
     { label: "Facebook", url: "https://facebook.com/", icon: "f", active: true },
+    { label: "Pagina WEB", url: "https://emprendeRed.com.co/", icon: "W", active: true },
     { label: "TikTok", url: "https://tiktok.com/", icon: "♪", active: true },
   ],
 };
