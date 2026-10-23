@@ -10,6 +10,22 @@ import { defaultPrizes, defaultSettings, normalizeEmail, normalizeWhatsapp, type
 let _db: ReturnType<typeof drizzle> | null = null;
 let _migrationsReady = false;
 
+function normalizeStoredSettings(value: unknown): CampaignSettings {
+  let parsed: unknown = value;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { parsed = null; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const record = parsed as Record<string, unknown>;
+    const keys = Object.keys(record);
+    if (keys.length && keys.every(key => /^\d+$/.test(key))) {
+      const rebuilt = keys.sort((a, b) => Number(a) - Number(b)).map(key => String(record[key] ?? "")).join("");
+      try { parsed = JSON.parse(rebuilt); } catch { parsed = null; }
+    }
+  }
+  return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed as CampaignSettings : defaultSettings;
+}
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && ENV.dbUrl) {
@@ -213,6 +229,12 @@ export async function ensureDefaultCampaign() {
     const inserted = await db.insert(campaigns).values({ slug: "demo", name: "Campaña Demo", active: 1, settings: defaultSettings }).$returningId();
     campaign = (await db.select().from(campaigns).where(eq(campaigns.id, inserted[0].id)).limit(1))[0] ?? null;
     if (campaign) await db.insert(prizes).values(defaultPrizes.map((item, index) => ({ ...item, campaignId: campaign!.id, sortOrder: index, active: 1 })));
+  } else {
+    const normalized = normalizeStoredSettings(campaign.settings);
+    if (JSON.stringify(campaign.settings) !== JSON.stringify(normalized)) {
+      await db.update(campaigns).set({ settings: normalized }).where(eq(campaigns.id, campaign.id));
+      campaign = { ...campaign, settings: normalized };
+    }
   }
   return campaign;
 }
@@ -288,8 +310,9 @@ export async function updateCampaignSettings(campaignId: number, name: string, s
   const db = await getDb();
   if (!db) return;
   const current = await db.select({ settings: campaigns.settings }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
-  const currentSettings = (current[0]?.settings && typeof current[0].settings === "object") ? current[0].settings as CampaignSettings : defaultSettings;
-  const mergedSettings = { ...defaultSettings, ...currentSettings, ...settings, socialLinks: Array.isArray(settings.socialLinks) ? settings.socialLinks : currentSettings.socialLinks };
+  const currentSettings = normalizeStoredSettings(current[0]?.settings);
+  const incomingSettings = normalizeStoredSettings(settings);
+  const mergedSettings = { ...defaultSettings, ...currentSettings, ...incomingSettings, socialLinks: Array.isArray(incomingSettings.socialLinks) ? incomingSettings.socialLinks : currentSettings.socialLinks };
   await db.update(campaigns).set({ name: String(name).slice(0, 180), settings: mergedSettings }).where(eq(campaigns.id, campaignId));
   const saved = await db.select({ name: campaigns.name, settings: campaigns.settings }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
   if (!saved[0]) throw new Error("La campaña no quedó guardada en MySQL.");
