@@ -187,7 +187,10 @@ async function startServer() {
       res.json({ ok: true, saved: { name: saved.name, settings: saved.settings } });
     } catch (error) {
       console.error("campaign settings save", error);
-      sendError(res, 500, "MySQL rechazó el guardado. Verifica que la aplicación use la misma base configurada en Hostinger y que las migraciones estén aplicadas.");
+      const dbError = error as { code?: string; errno?: number; sqlState?: string; sqlMessage?: string; message?: string };
+      const detail = [dbError.code, dbError.errno, dbError.sqlState].filter(Boolean).join("/") || "UNKNOWN";
+      const safeMessage = String(dbError.sqlMessage || dbError.message || "Error de escritura").replace(/mysql:\/\/[^\s]+/gi, "mysql://[oculto]").slice(0, 180);
+      sendError(res, 500, `MySQL rechazó el guardado [${detail}]: ${safeMessage}`);
     }
   });
   app.put("/api/admin/prizes", async (req, res) => {
