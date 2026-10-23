@@ -1,13 +1,15 @@
 // Platform values are read at use time. See the Webdev service/authentication skills.
 export const ENV = {
   get dbUrl() {
-    if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-    const host = process.env.DB_HOST ?? "localhost";
-    const port = process.env.DB_PORT ?? "3306";
-    const name = encodeURIComponent(process.env.DB_NAME ?? "");
-    const user = encodeURIComponent(process.env.DB_USER ?? "");
-    const pass = encodeURIComponent(process.env.DB_PASS ?? "");
-    return name && user ? `mysql://${user}:${pass}@${host}:${port}/${name}` : "";
+    if (process.env.DB_HOST && process.env.DB_NAME && process.env.DB_USER) {
+      const host = process.env.DB_HOST;
+      const port = process.env.DB_PORT ?? "3306";
+      const name = encodeURIComponent(process.env.DB_NAME);
+      const user = encodeURIComponent(process.env.DB_USER);
+      const pass = encodeURIComponent(process.env.DB_PASS ?? "");
+      return `mysql://${user}:${pass}@${host}:${port}/${name}`;
+    }
+    return process.env.DATABASE_URL ?? "";
   },
   get webUrl() { return process.env.RUTA_WEB ?? ""; },
   get installKey() { return process.env.INSTALL_KEY ?? ""; },
