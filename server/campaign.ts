@@ -33,7 +33,7 @@ export const defaultSettings: CampaignSettings = {
   title: "Gira y gana algo grande",
   highlight: "Tu oportunidad está a un giro",
   description: "Déjanos tus datos, gira la ruleta y descubre tu premio. Todo queda registrado para que tu experiencia sea clara y rápida.",
-  footer: "Campaña demo · Personaliza cada detalle desde tu panel",
+  footer: "Campaña EmprendeRed · Personaliza cada detalle desde tu panel",
   primaryColor: "#f7c948",
   secondaryColor: "#33246f",
   accentColor: "#17c6d8",

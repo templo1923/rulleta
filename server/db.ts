@@ -226,7 +226,7 @@ export async function ensureDefaultCampaign() {
   if (!db) return null;
   let campaign = await getCampaignBySlug("demo");
   if (!campaign) {
-    const inserted = await db.insert(campaigns).values({ slug: "demo", name: "Campaña Demo", active: 1, settings: defaultSettings }).$returningId();
+    const inserted = await db.insert(campaigns).values({ slug: "demo", name: "Campaña EmprendeRed", active: 1, settings: defaultSettings }).$returningId();
     campaign = (await db.select().from(campaigns).where(eq(campaigns.id, inserted[0].id)).limit(1))[0] ?? null;
     if (campaign) await db.insert(prizes).values(defaultPrizes.map((item, index) => ({ ...item, campaignId: campaign!.id, sortOrder: index, active: 1 })));
   } else {
