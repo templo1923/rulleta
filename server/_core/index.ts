@@ -115,9 +115,9 @@ async function startServer() {
       if (bonus && !settings.allowBonus) return sendError(res, 409, "Los giros extra están desactivados.");
       const rows = await db.getCampaignPrizes(campaign.id);
       const previousPrize = rows.find(row => row.id === participant.prizeId);
-      const isAgain = previousPrize?.kind === "again";
-      if (bonus && (participant.spinCount === 0 || previousPrize?.kind !== "retry")) return sendError(res, 409, "Este participante no tiene un giro extra disponible.");
-      if (participant.spinCount > 0 && !isAgain && (!bonus || participant.bonusUsed)) return sendError(res, 409, "Este participante ya no tiene giros disponibles.");
+      const extraAvailable = previousPrize?.kind === "retry" || previousPrize?.kind === "again";
+      if (participant.spinCount === 0 && bonus) return sendError(res, 409, "El giro extra solo está disponible después del primer resultado.");
+      if (participant.spinCount > 0 && (!bonus || participant.bonusUsed || !extraAvailable)) return sendError(res, 409, "Este participante ya no tiene giros disponibles.");
       const usage = await Promise.all(rows.map(async row => ({ row, usedToday: row.maxDaily === null ? 0 : await db.getPrizeDailyUses(campaign.id, row.id) })));
       const availableRows = usage.filter(item => item.row.maxDaily === null || item.usedToday < item.row.maxDaily).map(item => item.row);
       const selected = chooseWeighted(availableRows);
